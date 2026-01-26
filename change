@@ -1,0 +1,44 @@
+class CoomoManager: ObservableObject {
+    // 统一管理播放状态
+    @Published var isPlaying: Bool = false
+    // 统一管理剩余时间（单位：秒）
+    @Published var remainingTime: Int = 0
+    
+    private var cancellable: AnyCancellable?
+    
+    static let shared = CoomoManager() // 单例模式，方便全局访问
+    
+    private init() {}
+
+    // 开启倒计时
+    func startTimer(minutes: Int) {
+        remainingTime = minutes * 60
+        isPlaying = true
+        
+        // 开启每秒执行一次的订阅
+        cancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateTimer()
+            }
+    }
+
+    private func updateTimer() {
+        guard isPlaying else { return }
+        
+        if remainingTime > 0 {
+            remainingTime -= 1
+        } else {
+            stopEverything()
+        }
+    }
+
+    func stopEverything() {
+        isPlaying = false
+        remainingTime = 0
+        cancellable?.cancel()
+        // 在这里调用你全局的音频停止逻辑
+        // 例如：AudioManager.shared.stop()
+        print("Coomo: Timer finished, stopping sounds and animations.")
+    }
+}
