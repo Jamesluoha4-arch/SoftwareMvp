@@ -64,6 +64,7 @@ struct RhythmPlayPage: View {
     @Binding var isPresented: Bool
     @Binding var selectedTab: PlaybackCategory
     @StateObject private var audioManager = AudioManager.shared
+    @StateObject private var timerManager = TimerManager.shared
     @State private var innerDragOffset: CGFloat = 0
     @State private var showInfoOverlay: Bool = false
     @State private var activeOverlay: ActiveOverlay? = nil
@@ -115,6 +116,18 @@ struct RhythmPlayPage: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
+                            if timerManager.countdownSeconds > 0 {
+                                Button(action: { timerManager.isTimerActive.toggle() }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: timerManager.isTimerActive ? "stopwatch" : "pause.fill")
+                                        Text(timerManager.timerString())
+                                    }
+                                    .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                                    .padding(.horizontal, 16).frame(height: 42)
+                                    .background(Color.blue.opacity(0.6)).cornerRadius(21)
+                                }.contentShape(Capsule())
+                            }
+                            
                             CapsuleToolButton(icon: "brain.head.profile", title: "注意力") { withAnimation { activeOverlay = .alarm } }
                             CapsuleToolButton(icon: "bubble.left", title: "反馈") { withAnimation { activeOverlay = .feedback } }
                             CapsuleToolButton(icon: "sparkles", title: "声音编辑") { withAnimation { activeOverlay = .soundEdit } }
@@ -124,7 +137,11 @@ struct RhythmPlayPage: View {
                     }
                     
                     HStack(spacing: 30) {
-                                            Button(action: { /* 重置逻辑 */ }) { ControlIconGlass(icon: "arrow.clockwise") }
+                                            Button(action: {
+                                                audioManager.isPlaying = true
+                                                timerManager.stopTimer()
+                                                timerManager.countdownSeconds = 0
+                                            }) { ControlIconGlass(icon: "arrow.clockwise") }
                                             // 播放按钮：直接调用音频管理器的 toggle
                                             Button(action: {
                                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -201,6 +218,9 @@ struct RhythmPlayPage: View {
         .onAppear{
             showInfoOverlay = true
                 }
+        .onReceive(TimerManager.shared.$countdownSeconds){ _ in
+            
+        }
     }
 
 
@@ -222,7 +242,9 @@ struct RhythmPlayPage: View {
             HStack {
                 Text("注意力集中").font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                 Spacer()
-                Button(action: { withAnimation { activeOverlay = nil } }) {
+                Button(action: { withAnimation {
+                    timerManager.startTimer(minutes: workDuration)
+                    activeOverlay = nil } }) {
                     Text("完成").foregroundColor(.blue).fontWeight(.medium)
                 }
             }
