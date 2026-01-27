@@ -341,6 +341,19 @@ class TimerManager: ObservableObject {
             }
     }
 
+    func startCountdown(from date: Date) {
+        let now = Date()
+        var diff = date.timeIntervalSince(now)
+        
+        // 如果用户选的时间已经过了（比如现在23:00，选了08:00），则视为明天的时间
+        if diff < 0 { diff += 86400 }
+        
+        self.countdownSeconds = Int(diff)
+        self.isTimerActive = true
+        
+        setupTimerSubscription()
+    }
+
     private func updateCountdown() {
         guard isTimerActive && countdownSeconds > 0 else {
             if countdownSeconds == 0 { stopTimer() }
