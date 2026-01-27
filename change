@@ -43,3 +43,81 @@ class TimerManager: ObservableObject {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 }
+
+
+
+
+// 在 ContentView 结构体内添加状态
+@State private var alarmTime = Date()
+@State private var isBlockAppOn = false
+
+// 在 body 的 ZStack 底部插入
+if showMainTimerPicker {
+    ZStack {
+        // 1. 半透明背景
+        Color.black.opacity(0.6)
+            .ignoresSafeArea()
+            .onTapGesture { withAnimation { showMainTimerPicker = false } }
+
+        // 2. 遮罩面板
+        VStack(alignment: .leading, spacing: 20) {
+            Text("智能闹钟").font(.title.bold()).foregroundColor(.white)
+            
+            DatePicker("", selection: $alarmTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .colorInvert()
+                .frame(maxWidth: .infinity)
+            
+            // 引用你 PlayPage 里的计算睡眠函数，或者直接写死逻辑
+            Text("预计睡眠时间：\(calculateSleepTime(from: alarmTime))")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Toggle("拦截干扰应用", isOn: $isBlockAppOn)
+                .foregroundColor(.white)
+                .padding()
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(12)
+            
+            Spacer()
+            
+            HStack(spacing: 15) {
+                Button(action: { withAnimation { showMainTimerPicker = false } }) {
+                    Text("取消").frame(maxWidth: .infinity).frame(height: 55)
+                        .background(Color.gray.opacity(0.3)).cornerRadius(15).foregroundColor(.white)
+                }
+                
+                Button(action: {
+                    // 【关键联动】：调用全局管理器
+                    timerManager.startCountdown(from: alarmTime)
+                    // 如果有拦截应用的功能需求，可以在这里处理 isBlockAppOn
+                    
+                    withAnimation { showMainTimerPicker = false }
+                }) {
+                    Text("确认").frame(maxWidth: .infinity).frame(height: 55)
+                        .background(Color.white).cornerRadius(15).foregroundColor(.black)
+                }
+            }
+        }
+        .padding(25)
+        .background(Color(hex: "1A1A1A")) // 保持深色背景
+        .cornerRadius(30)
+        .padding(.horizontal, 20)
+        .frame(height: 550) // 给定一个高度，或者根据内容自适应
+        
+        // 3. 右上角关闭按钮
+        VStack {
+            HStack {
+                Spacer()
+                Button(action: { withAnimation { showMainTimerPicker = false } }) {
+                    Image(systemName: "xmark").font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                        .padding(10).background(Color.white.opacity(0.1)).clipShape(Circle())
+                }.padding(40)
+            }
+            Spacer()
+        }
+    }
+    .transition(.asymmetric(insertion: .move(edge: .bottom), removal: .opacity))
+    .zIndex(100)
+}
