@@ -319,3 +319,51 @@ class AudioManager: ObservableObject {
         }
     }
 }
+
+
+class TimerManager: ObservableObject {
+    static let shared = TimerManager()
+    
+    @Published var countdownSeconds: Int = 0
+    @Published var isTimerActive: Bool = false
+    
+    private var cancellable: AnyCancellable?
+
+    func startTimer(minutes: Int) {
+        countdownSeconds = minutes * 60
+        isTimerActive = true
+        
+        // 全局只有一个计时器在运行
+        cancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateCountdown()
+            }
+    }
+
+    private func updateCountdown() {
+        guard isTimerActive && countdownSeconds > 0 else {
+            if countdownSeconds == 0 { stopTimer() }
+            return
+        }
+        countdownSeconds -= 1
+        
+        if countdownSeconds == 0 {
+            stopTimer()
+            AudioManager.shared.isPlaying = false // 倒计时结束停止音频
+        }
+    }
+
+    func stopTimer() {
+        isTimerActive = false
+        cancellable?.cancel()
+    }
+    
+    // 格式化时间显示
+    func timerString() -> String {
+        let minutes = countdownSeconds / 60
+        let seconds = countdownSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+}
