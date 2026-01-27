@@ -1,44 +1,45 @@
-class CoomoManager: ObservableObject {
-    // 统一管理播放状态
-    @Published var isPlaying: Bool = false
-    // 统一管理剩余时间（单位：秒）
-    @Published var remainingTime: Int = 0
+class TimerManager: ObservableObject {
+    static let shared = TimerManager()
+    
+    @Published var countdownSeconds: Int = 0
+    @Published var isTimerActive: Bool = false
     
     private var cancellable: AnyCancellable?
-    
-    static let shared = CoomoManager() // 单例模式，方便全局访问
-    
-    private init() {}
 
-    // 开启倒计时
     func startTimer(minutes: Int) {
-        remainingTime = minutes * 60
-        isPlaying = true
+        countdownSeconds = minutes * 60
+        isTimerActive = true
         
-        // 开启每秒执行一次的订阅
+        // 全局只有一个计时器在运行
         cancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.updateTimer()
+                self?.updateCountdown()
             }
     }
 
-    private func updateTimer() {
-        guard isPlaying else { return }
+    private func updateCountdown() {
+        guard isTimerActive && countdownSeconds > 0 else {
+            if countdownSeconds == 0 { stopTimer() }
+            return
+        }
+        countdownSeconds -= 1
         
-        if remainingTime > 0 {
-            remainingTime -= 1
-        } else {
-            stopEverything()
+        if countdownSeconds == 0 {
+            stopTimer()
+            AudioManager.shared.isPlaying = false // 倒计时结束停止音频
         }
     }
 
-    func stopEverything() {
-        isPlaying = false
-        remainingTime = 0
+    func stopTimer() {
+        isTimerActive = false
         cancellable?.cancel()
-        // 在这里调用你全局的音频停止逻辑
-        // 例如：AudioManager.shared.stop()
-        print("Coomo: Timer finished, stopping sounds and animations.")
+    }
+    
+    // 格式化时间显示
+    func timeString() -> String {
+        let minutes = countdownSeconds / 60
+        let seconds = countdownSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
