@@ -367,6 +367,22 @@ class TimerManager: ObservableObject {
         }
     }
 
+    private func setupTimerSubscription() {
+        cancellable?.cancel() // 开启新计时前先取消旧的
+        cancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                if self.countdownSeconds > 0 {
+                    self.countdownSeconds -= 1
+                } else {
+                    self.stopTimer()
+                    // 计时结束，停止音频播放
+                    AudioManager.shared.togglePlayPause() 
+                }
+            }
+    }
+
     func stopTimer() {
         isTimerActive = false
         cancellable?.cancel()
