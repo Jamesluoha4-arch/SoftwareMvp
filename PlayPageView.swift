@@ -56,17 +56,16 @@ struct PlayPage: View {
     
     @State private var alarmTime = Date()
     @State private var isBlockAppOn: Bool = false // 闹钟遮罩内部开关状态
-    @State private var isTimerActive: Bool = false
-    @State private var countdownSeconds: Int = 0
     
     @State private var mixAudioEnabled: Bool = true
     @State private var animationResetID = UUID() // 用于强制重置动效
     @State private var isExiting: Bool = false // 用于强制重置动效
     
+    @StateObject private var timerManager = TimerManager.shared
+    
     var initialAction: InitialAction = .none
     
     
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -123,11 +122,11 @@ struct PlayPage: View {
                     // 横向工具栏
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            if countdownSeconds > 0 {
-                                Button(action: { isTimerActive.toggle() }) {
+                            if timerManager.countdownSeconds > 0 {
+                                Button(action: { timerManager.isTimerActive.toggle() }) {
                                     HStack(spacing: 8) {
-                                        Image(systemName: isTimerActive ? "stopwatch" : "pause.fill")
-                                        Text(formatTime(countdownSeconds))
+                                        Image(systemName: timerManager.isTimerActive ? "stopwatch" : "pause.fill")
+                                        Text(timerManager.timerString())
                                     }
                                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                                     .padding(.horizontal, 16).frame(height: 42)
@@ -253,6 +252,10 @@ struct PlayPage: View {
             }
             showInfoOverlay = true
                 }
+        .onReceive(TimerManager.shared.$countdownSeconds){ _ in
+            
+        }
+        
     }
 
     @ViewBuilder
@@ -275,8 +278,9 @@ struct PlayPage: View {
             // 1. 更新 UUID 强制 RippleCircle 重新创建并启动动画
             animationResetID = UUID()
             // 2. 隐藏工具栏计时器
-            countdownSeconds = 0
-            isTimerActive = false
+            timerManager.stopTimer()
+            timerManager.countdownSeconds = 0
+            
         }
     }
 
@@ -481,16 +485,12 @@ struct PlayPage: View {
     
     private func startCountdown() {
         let diff = alarmTime.timeIntervalSinceNow
-        countdownSeconds = Int(diff > 0 ? diff : diff + 86400)
-        isTimerActive = true
+        let totalSeconds = Int(diff > 0 ? diff : diff + 86400)
+        timerManager.countdownSeconds = totalSeconds
+        timerManager.isTimerActive = true
+        timerManager.startTimer(minutes: totalSeconds / 60)
     }
     
-    private func updateCountdown() {
-        if isTimerActive && countdownSeconds > 0 {
-            countdownSeconds -= 1
-            if countdownSeconds == 0 { audioManager.isPlaying = false; isTimerActive = false }
-        }
-    }
     
     private func formatTime(_ s: Int) -> String {
         String(format: "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)
