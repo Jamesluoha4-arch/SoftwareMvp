@@ -1,3 +1,45 @@
+ScrollView(.horizontal, showsIndicators: false) {
+    HStack(spacing: 12) {
+        if timerManager.countdownSeconds > 0 {
+            Button(action: {
+                // 修改点 1: 逻辑闭环，点击活跃的计时器即停止
+                if timerManager.isTimerActive {
+                    timerManager.stopTimer()
+                } else {
+                    timerManager.isTimerActive.toggle()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    // 修改点 2: 图标逻辑优化
+                    Image(systemName: timerManager.isTimerActive ? "pause.fill" : "play.fill")
+                    // 修改点 3: 修正函数名
+                    Text(timerManager.timeString())
+                }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .frame(height: 42)
+                // 修改点 4: 使用玻璃质感扩展
+                .glassStyle(opacity: 0.4, cornerRadius: 21) 
+            }
+            .contentShape(Capsule())
+        }
+        
+        CapsuleToolButton(icon: "bubble.left", title: "反馈") { withAnimation { activeOverlay = .feedback } }
+        CapsuleToolButton(icon: "sparkles", title: "声音编辑") { withAnimation { activeOverlay = .soundEdit } }
+        CapsuleToolButton(icon: "alarm", title: "闹钟") {
+            isBlockAppOn = isInterceptOn
+            withAnimation { activeOverlay = .alarm }
+        }
+        CapsuleToolButton(icon: "hand.raised", title: "拦截", isOn: isInterceptOn) { isInterceptOn.toggle() }
+        CapsuleToolButton(icon: "waveform.path", title: "混合") { withAnimation { activeOverlay = .mix } }
+    }
+    .padding(.horizontal, 20)
+}
+
+
+
+
 class TimerManager: ObservableObject {
     static let shared = TimerManager()
     
