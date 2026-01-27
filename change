@@ -121,3 +121,14 @@ if showMainTimerPicker {
     .transition(.asymmetric(insertion: .move(edge: .bottom), removal: .opacity))
     .zIndex(100)
 }
+
+
+
+private func calculateSleepTime(from targetDate: Date) -> String {
+    let now = Date()
+    var diff = targetDate.timeIntervalSince(now)
+    if diff < 0 { diff += 86400 } // 如果选的是明天
+    let hours = Int(diff) / 3600
+    let minutes = Int(diff) % 3600 / 60
+    return "\(hours)小时\(minutes)分钟"
+}
